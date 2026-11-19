@@ -34,7 +34,7 @@ jobs:
         continue-on-error: true
         run: |
           cp ../www/runtime-apk/index.html ../www/runtime-apk/api.js ../www/runtime/engine.js ../www/runtime/app.js www/
-          cp ../www/runtime-apk/patch_android.py ../www/runtime-apk/MainActivity.java.tmpl .
+          cp ../www/runtime-apk/patch_android.py ../www/runtime-apk/MainActivity.java.tmpl ../www/runtime-apk/GameService.java.tmpl .
           npm install --no-audit --no-fund
           npx cap add android
           python3 patch_android.py
@@ -56,13 +56,22 @@ jobs:
           PKG=android/app/src/main/java/com/piter/pocketcodegenerador
           cp android-native/*.java $PKG/
           python3 set_app_icon.py || echo "No se pudo poner el icono de la app"
+          python3 patch_generator.py || echo "No se pudo preparar el segundo plano"
           npx cap sync android
           cd android
           chmod +x gradlew
           if ! ./gradlew assembleDebug --no-daemon; then
+            echo "Fallo con las notificaciones de progreso; compilando sin ellas (se conserva el selector de carpetas)"
+            cd ..
+            rm -f $PKG/ProgressNotifyPlugin.java $PKG/GenerationService.java
+            python3 patch_generator.py --remove
+            cp android-native/MainActivity.sin-notificaciones.txt $PKG/MainActivity.java
+            cd android
+          fi
+          if ! ./gradlew assembleDebug --no-daemon; then
             echo "Fallo con el selector de carpetas; compilando sin el (se usara Guardar/Enviar)"
             cd ..
-            rm -f $PKG/FolderSaverPlugin.java
+            rm -f $PKG/FolderSaverPlugin.java $PKG/ProgressNotifyPlugin.java $PKG/GenerationService.java
             printf 'package com.piter.pocketcodegenerador;\nimport com.getcapacitor.BridgeActivity;\npublic class MainActivity extends BridgeActivity {}\n' > $PKG/MainActivity.java
             cd android && ./gradlew assembleDebug --no-daemon
           fi
