@@ -61,9 +61,16 @@ jobs:
           cd android
           chmod +x gradlew
           if ! ./gradlew assembleDebug --no-daemon; then
+            echo "Fallo con el boton de instalar; compilando sin el (se conserva lo demas)"
+            cd ..
+            rm -f $PKG/InstallApkPlugin.java
+            cp android-native/MainActivity.sin-instalar.txt $PKG/MainActivity.java
+            cd android
+          fi
+          if ! ./gradlew assembleDebug --no-daemon; then
             echo "Fallo con las notificaciones de progreso; compilando sin ellas (se conserva el selector de carpetas)"
             cd ..
-            rm -f $PKG/ProgressNotifyPlugin.java $PKG/GenerationService.java
+            rm -f $PKG/ProgressNotifyPlugin.java $PKG/GenerationService.java $PKG/InstallApkPlugin.java
             python3 patch_generator.py --remove
             cp android-native/MainActivity.sin-notificaciones.txt $PKG/MainActivity.java
             cd android
@@ -71,7 +78,7 @@ jobs:
           if ! ./gradlew assembleDebug --no-daemon; then
             echo "Fallo con el selector de carpetas; compilando sin el (se usara Guardar/Enviar)"
             cd ..
-            rm -f $PKG/FolderSaverPlugin.java $PKG/ProgressNotifyPlugin.java $PKG/GenerationService.java
+            rm -f $PKG/FolderSaverPlugin.java $PKG/ProgressNotifyPlugin.java $PKG/GenerationService.java $PKG/InstallApkPlugin.java
             printf 'package com.piter.pocketcodegenerador;\nimport com.getcapacitor.BridgeActivity;\npublic class MainActivity extends BridgeActivity {}\n' > $PKG/MainActivity.java
             cd android && ./gradlew assembleDebug --no-daemon
           fi
